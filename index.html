@@ -254,11 +254,11 @@ function vReport(){
 function wkDates(s){const b=new Date(s+'T00:00:00'),a=new Date(b);a.setDate(b.getDate()-(b.getDay()+6)%7);const o=[];for(let i=0;i<7;i++){o.push(dstr(a));a.setDate(a.getDate()+1)}return o}
 function shiftWk(n){const b=new Date((ui.sd||T)+'T00:00:00');b.setDate(b.getDate()+n*7);ui.sd=dstr(b);vSch()}
 function vSch(){
-  ui.sd=ui.sd||T;const ds=wkDates(ui.sd),ov=Object.keys(S.ovr).sort();
+  ui.sd=ui.sd||T;const ds=wkDates(ui.sd),ov=Object.keys(S.ovr).filter(k=>S.ovr[k].src!=='sheet').sort();
   $('#view').innerHTML=`<div class="card"><div class="row" style="margin:0 0 12px"><h2 style="flex:1;margin:0">ตารางงาน ${ds[0]} ถึง ${ds[6]}</h2><button class="btn sec" onclick="shiftWk(-1)">สัปดาห์ก่อน</button><button class="btn sec" onclick="ui.sd=T;vSch()">สัปดาห์นี้</button><button class="btn sec" onclick="shiftWk(1)">สัปดาห์หน้า</button></div>
   <div class="wide"><table><tr><th>พนักงาน</th>${ds.map(d=>`<th>${DAYS[new Date(d+'T00:00:00').getDay()]} ${d.slice(8)}${S.hol[d]?' <span class="chip c-hol">นักขัตฤกษ์</span>':''}</th>`).join('')}</tr>
-  ${S.emps.map(e=>`<tr><td>${dot(e)}${esc(e.name)}</td>${ds.map(d=>{const s=sched(e,d),o=S.ovr[e.id+'|'+d];return `<td style='${s?'box-shadow:inset 3px 0 0 '+col(e):''}'>${s?s.st+'–'+s.en:'<span class="note">หยุด</span>'}${o?` <span class='chip ${o.leave?'c-hol':'c-late'}'>${o.leave?'ลา':'เฉพาะวัน'}</span>`:''}</td>`}).join('')}</tr>`).join('')}</table></div>
-  <p class="note">ตารางประจำสัปดาห์แก้ได้ที่แท็บ “พนักงาน” · เข้างานหลังเวลาในตารางเกิน ${S.set.grace} นาที นับว่าสาย · พนักงานประจำหยุดอัตโนมัติวันนักขัตฤกษ์</p></div>
+  ${S.emps.map(e=>`<tr><td>${dot(e)}${esc(e.name)}</td>${ds.map(d=>{const s=sched(e,d),o=S.ovr[e.id+'|'+d];return `<td style='${s?'box-shadow:inset 3px 0 0 '+col(e):''}'>${s?s.st+'–'+s.en:'<span class="note">หยุด</span>'}${o?(o.src==='sheet'?(o.off?` <span class='chip c-hol'>${esc(o.label||'Sheet')}</span>`:''):` <span class='chip ${o.leave?'c-hol':'c-late'}'>${o.leave?'ลา':'เฉพาะวัน'}</span>`):''}</td>`}).join('')}</tr>`).join('')}</table></div>
+  <p class="note">${S.sheet?`ซิงก์จาก Google Sheet ล่าสุด ${S.sheet.at} · `:''}ตารางประจำสัปดาห์แก้ได้ที่แท็บ “พนักงาน” · กะเฉพาะวันที่เพิ่มเองมีผลเหนือ Google Sheet · เข้างานหลังเวลาในตารางเกิน ${S.set.grace} นาที นับว่าสาย · พนักงานประจำหยุดอัตโนมัติวันนักขัตฤกษ์</p></div>
   ${ui.mgr?`<div class="card"><h2>เพิ่ม/เปลี่ยนกะเฉพาะวัน</h2><div class="row"><div><label>พนักงาน</label><select id="o_e">${S.emps.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('')}</select></div><div><label>วันที่</label><input id="o_d" type="date" value="${ui.sd}"></div><div><label>รูปแบบ</label><select id="o_t"><option value="on">ทำงาน</option><option value="off">หยุด</option></select></div><div><label>เข้า</label><input id="o_s" type="time" value="09:00"></div><div><label>เลิก</label><input id="o_n" type="time" value="18:00"></div></div><button class="btn" onclick="addOvr()">บันทึก</button>
   ${ov.length?`<div class="wide" style="margin-top:12px"><table>${ov.map(k=>{const p=k.split('|'),e=emp(p[0]),o=S.ovr[k];return `<tr><td>${e?esc(e.name):esc(p[0])}</td><td>${p[1]}</td><td>${o.off?'หยุด':o.st+'–'+o.en}</td><td><button class="btn del" onclick="delete S.ovr['${esc(k)}'];save();vSch()">ลบ</button></td></tr>`}).join('')}</table></div>`:''}</div>`:''}`;
 }
@@ -345,7 +345,7 @@ function saveEmp(){
   if(!id||!name||!v('rate')){toast('กรอกชื่อ รหัส และค่าจ้างให้ครบ');return}
   const sch=[0,1,2,3,4,5,6].map(w=>({on:$('#s_on'+w).checked,st:$('#s_st'+w).value||'09:00',en:$('#s_en'+w).value||'18:00'})),o={id,name,phone:v('phone'),line:v('line'),color:v('color'),ph:ui.ph!==undefined?ui.ph:(ui.edit.ph||''),type:v('type'),rate:+v('rate'),sch,br:+v('br')||0,tok:ui.edit.tok||rtok()},i=S.emps.findIndex(e=>e.id===id);
   if(ui.edit.id){if(JSON.stringify(ui.edit.sch)!==JSON.stringify(sch)||ui.edit.br!==o.br)notify(id,'ตารางงานประจำสัปดาห์ของคุณมีการเปลี่ยนแปลง กรุณาตรวจสอบในแอป');S.emps[i]=o}else if(i>=0){toast('รหัสนี้มีอยู่แล้ว');return}else S.emps.push(o);
-  save();ui.edit=null;vEmps();toast('บันทึกแล้ว');
+  save();ui.edit=null;vEmps();toast('บันทึกแล้ว');syncSheet(true);
 }
 function delEmp(id){if(!confirm('ลบพนักงานคนนี้? ประวัติลงเวลาจะไม่แสดงในรายงาน'))return;S.emps=S.emps.filter(e=>e.id!==id);save();vEmps()}
 
@@ -360,12 +360,34 @@ function vSet(){
    <div class="row"><div><label>วันที่</label><input id="h_d" type="date"></div><div><label>ชื่อวันหยุด</label><input id="h_n"></div><div style="flex:0 0 auto"><button class="btn" onclick="addHol()">เพิ่ม</button></div></div>
    <div class="wide"><table>${hs.map(d=>`<tr><td>${d}</td><td>${esc(S.hol[d])}</td><td><button class="btn del" onclick="delete S.hol['${d}'];save();vSet()">ลบ</button></td></tr>`).join('')}</table></div>
    <p class="note">รายการตัวอย่าง ตรวจกับปฏิทินวันหยุดที่ประกาศจริงก่อนใช้งาน</p></div>
+  <div class="card"><h2>ซิงก์ตารางกะจาก Google Sheet</h2>
+   <p style="margin:0 0 8px">${S.sheet?`ล่าสุด ${S.sheet.at} · นำเข้า ${S.sheet.n} กะ`:'ยังไม่เคยซิงก์'}${S.sheet&&S.sheet.err?` · <span style="color:var(--bad)">${esc(S.sheet.err)}</span>`:''}</p>
+   ${S.sheet&&S.sheet.un&&S.sheet.un.length?`<p class="note" style="margin:0 0 8px">ชื่อในชีตที่ยังไม่ตรงกับพนักงานในระบบ:</p><div class="row" style="margin:0 0 12px">${S.sheet.un.map(n=>`<button class="btn sec" style="flex:0 0 auto" data-n="${esc(n)}" onclick="ui.edit={name:this.dataset.n,type:'part',sch:WK([],'09:00','18:00')};go2emps()">+ เพิ่ม “${esc(n)}”</button>`).join('')}</div>`:''}
+   <button class="btn" onclick="syncSheet()">ซิงก์ตอนนี้</button>
+   <p class="note">ระบบดึงกะจากชีตอัตโนมัติทุก 10 นาที จับคู่ด้วยชื่อ (ไม่สนตัวพิมพ์เล็ก/ใหญ่ หรือคำแรกของชื่อ) ถ้าชื่อตรงกันจะใช้เวลาเข้า–เลิกตามชีต · OFF, ลา, RRP หรือข้อความอื่นที่ไม่ใช่เวลา นับเป็นวันหยุด</p></div>
   <div class="card"><h2>PIN สำหรับ HR/ผู้จัดการ</h2><div class="row"><div><label>PIN ใหม่ (อย่างน้อย 4 ตัว)</label><input id="np" type="password" inputmode="numeric"></div><div style="flex:0 0 auto"><button class="btn" onclick="savePin()">บันทึก</button></div></div><p class="note">PIN เก็บในเบราว์เซอร์ ใช้กันคนทั่วไปเข้าผิดหน้าในต้นแบบเท่านั้น ระบบจริงต้องล็อกอินและตรวจสิทธิ์ที่เซิร์ฟเวอร์</p></div>
   <div class="card"><button class="btn sec" onclick="if(confirm('ล้างข้อมูลทั้งหมดและกลับไปใช้ข้อมูลตัวอย่าง?')){S=seed();save();go('punch')}">รีเซ็ตเป็นข้อมูลตัวอย่าง</button></div>`;
 }
 function addHol(){const d=$('#h_d').value,n=$('#h_n').value.trim();if(!d||!n){toast('ใส่วันที่และชื่อวันหยุด');return}S.hol[d]=n;save();vSet()}
 
-load();render();
+const nkey=s=>String(s||'').trim().toLowerCase();
+const sheetEmps=n=>{const k=nkey(n);return S.emps.filter(e=>nkey(e.name)===k||nkey(String(e.name).split(/\s+/)[0])===k)};
+function go2emps(){ui.tab='emps';nav();vEmps()}
+async function syncSheet(auto){
+  try{
+    const r=await fetch('/api/sheet-schedule',{cache:'no-store'}),j=await r.json();if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
+    Object.keys(S.ovr).forEach(k=>{if(S.ovr[k].src==='sheet')delete S.ovr[k]});
+    const un=new Set();let n=0;
+    j.items.forEach(it=>{const es=sheetEmps(it.name);if(!es.length){un.add(it.name);return}
+      es.forEach(e=>{const k=e.id+'|'+it.date;if(S.ovr[k])return;S.ovr[k]=it.off?{off:true,label:it.label,src:'sheet'}:{st:it.st,en:it.en,src:'sheet'};n++})});
+    S.sheet={at:ts(),n,un:[...un]};save();
+    if(!auto)toast(`ซิงก์แล้ว ${n} กะ`+(un.size?` · ไม่พบชื่อ ${un.size} คน`:''));
+  }catch(err){S.sheet=Object.assign({},S.sheet,{err:'ซิงก์ไม่สำเร็จ: '+err.message});if(!auto){toast('ซิงก์ไม่สำเร็จ');if(ui.tab==='set')render()}return}
+  if(!ui.edit&&(ui.tab==='sch'||ui.tab==='set'||ui.tab==='report'))render();
+}
+load();render();syncSheet(true);
+setInterval(()=>syncSheet(true),10*60*1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncSheet(true)});
 setInterval(()=>{const c=$('#clk');if(c&&!ui.sim){const n=new Date();c.textContent=hm(n.getHours()*60+n.getMinutes())}},5000);
 </script>
 </body>
