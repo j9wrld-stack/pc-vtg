@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ระบบลงเวลาทำงาน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2f3;--sf:#fff;--ink:#12262c;--mut:#5b6e74;--ln:#d5dee1;--ac:#0e7467;--acf:#fff;--warn:#9a4a05;--warnb:#fdf0dc;--bad:#b42318;--badb:#fde6e3;--ok:#0b6b5f;--okb:#dcf3ee;--hol:#5b3fb5;--holb:#ece8fa;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1a1e;--sf:#16262b;--ink:#e6f0f2;--mut:#9ab0b6;--ln:#294047;--ac:#38b6a5;--acf:#06201c;--warn:#f0a95a;--warnb:#3a2a12;--bad:#f28b82;--badb:#3d1a17;--ok:#5fd0bf;--okb:#12332e;--hol:#b9a6f5;--holb:#2a2250;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1a1e;--sf:#16262b;--ink:#e6f0f2;--mut:#9ab0b6;--ln:#294047;--ac:#38b6a5;--acf:#06201c;--warn:#f0a95a;--warnb:#3a2a12;--bad:#f28b82;--badb:#3d1a17;--ok:#5fd0bf;--okb:#12332e;--hol:#b9a6f5;--holb:#2a2250;color-scheme:dark}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 "IBM Plex Sans Thai","Noto Sans Thai",system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:16px 16px 48px}
+h1{font-size:20px;margin:0}h2{font-size:17px;margin:0 0 12px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+nav{display:flex;gap:6px;overflow-x:auto;margin-bottom:16px}
+nav button,.seg button{border:1px solid var(--ln);background:var(--sf);color:var(--ink);padding:8px 14px;border-radius:999px;font:inherit;font-size:15px;cursor:pointer;white-space:nowrap}
+nav button.on,.seg button.on{background:var(--ac);color:var(--acf);border-color:var(--ac);font-weight:500}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:12px;padding:16px;margin-bottom:16px}
+.wide{overflow-x:auto}
+label{display:block;font-size:14px;color:var(--mut);margin-bottom:4px}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--ln);border-radius:8px;padding:8px 10px;width:100%;min-height:42px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.btn{border:0;background:var(--ac);color:var(--acf);padding:10px 18px;border-radius:8px;font:inherit;font-weight:500;cursor:pointer;min-height:42px}
+.btn.sec{background:transparent;color:var(--ink);border:1px solid var(--ln)}
+.btn.del{background:transparent;color:var(--bad);border:1px solid var(--ln)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.clock{font-size:clamp(52px,16vw,96px);font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.05}
+.date{color:var(--mut);margin-bottom:12px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0}
+.step{border:1px solid var(--ln);border-radius:10px;padding:10px 6px;text-align:center;font-size:14px;color:var(--mut)}
+.step b{display:block;font-size:19px;color:var(--ink);font-variant-numeric:tabular-nums}
+.step.done{background:var(--okb);border-color:transparent}.step.done b{color:var(--ok)}
+.step.next{border:2px solid var(--ac);color:var(--ink)}
+.big{width:100%;font-size:19px;padding:16px}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--ln);white-space:nowrap}
+th{color:var(--mut);font-weight:500}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.pick{cursor:pointer}tr.pick:hover td{background:var(--bg)}
+.chip{display:inline-block;padding:1px 9px;border-radius:999px;font-size:13px;margin-right:4px}
+.c-late{background:var(--warnb);color:var(--warn)}.c-bad{background:var(--badb);color:var(--bad)}.c-ok{background:var(--okb);color:var(--ok)}.c-hol{background:var(--holb);color:var(--hol)}.c-off{background:var(--bg);color:var(--mut)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.row{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:12px}
+.row>div{flex:1 1 150px}
+.note{color:var(--mut);font-size:14px}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+<main>
+<header><h1>ระบบลงเวลาทำงาน</h1><button class="btn sec" id="mb" onclick="mgrBtn()"></button></header>
+<nav id="nav"></nav>
+<div id="view"></div>
+</main>
+<div id="toast" role="status"></div>
+<script>
+const $=s=>document.querySelector(s),pad=n=>String(n).padStart(2,'0');
+const dstr=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const hm=m=>m==null?'–':pad(Math.floor(m/60))+':'+pad(m%60);
+const tm=s=>{const a=s.split(':');return +a[0]*60+ +a[1]};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const baht=n=>'฿'+Math.round(n).toLocaleString('th-TH');
+const DAYS=['อา','จ','อ','พ','พฤ','ศ','ส'],KEYS=['in','bo','be','out'],LAB=['เข้างาน','ออกพัก','กลับจากพัก','เลิกงาน'];
+const KEY='timeclock-demo-v2',T=dstr(new Date());
+const WK=(days,st,en)=>[0,1,2,3,4,5,6].map(w=>({on:days.includes(w),st:st,en:en}));
+let S,ui={tab:'punch',emp:null,per:'week',date:T,detail:null,edit:null,sim:false,simv:''};
+
+function seed(){
+  let s=7;const R=()=>(s=(s*16807)%2147483647)/2147483647;
+  const emps=[
+    {id:'E001',name:'สมชาย ใจดี',phone:'081-234-5678',type:'full',rate:18000,st:'09:00',en:'18:00',br:60,sch:WK([1,2,3,4,5],'09:00','18:00')},
+    {id:'E002',name:'มาลี รักงาน',phone:'082-345-6789',type:'full',rate:15000,st:'09:00',en:'18:00',br:60,sch:WK([1,2,3,4,5],'09:00','18:00')},
+    {id:'P001',name:'ต้น เรียนดี',phone:'083-456-7890',type:'part',rate:60,st:'12:00',en:'20:00',br:30,sch:WK([2,4,5,6,0],'12:00','20:00')},
+    {id:'P002',name:'ฟ้า สดใส',phone:'084-567-8901',type:'part',rate:55,st:'10:00',en:'16:00',br:30,sch:WK([1,3,6,0],'10:00','16:00')}];
+  const hol={'2026-10-13':'วันนวมินทรมหาราช','2026-10-23':'วันปิยมหาราช','2026-12-07':'ชดเชยวันพ่อแห่งชาติ','2026-12-10':'วันรัฐธรรมนูญ','2026-12-31':'วันสิ้นปี'};
+  const rec={};
+  for(let i=14;i>=1;i--){
+    const dt=new Date();dt.setDate(dt.getDate()-i);const d=dstr(dt),w=dt.getDay(),h=hol[d];
+    emps.forEach(e=>{
+      let work;
+      const sc=e.sch[w];work=sc.on?R()>(h&&e.type==='full'?.7:.08):R()<.05;
+      if(!work)return;
+      const st=tm(sc.st),en=tm(sc.en),mid=Math.round((st+en)/2-e.br/2+R()*8);
+      const inn=st+Math.round(R()*R()*28-4),bo=mid;
+      rec[e.id+'|'+d]={in:inn,bo:bo,be:bo+e.br+(R()<.25?Math.round(R()*18):0),out:en+Math.round(R()*20-6)};
+    });
+  }
+  return {emps,rec,hol,ovr:{},leave:[],audit:[],notif:[],pin:'1234',set:{grace:5,pm:2,fx:1}};
+}
+function load(){try{const j=localStorage.getItem(KEY);if(j){S=JSON.parse(j);S.leave=S.leave||[];S.audit=S.audit||[];S.notif=S.notif||[];S.pin=S.pin||'1234';fixTok();return}}catch(e){}S=seed();fixTok()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const emp=id=>S.emps.find(e=>e.id===id);
+function now(){if(ui.sim&&ui.simv){const d=new Date(ui.simv);if(!isNaN(d))return d}return new Date()}
+function toast(t){const x=$('#toast');x.textContent=t;x.className='show';clearTimeout(toast.t);toast.t=setTimeout(()=>x.className='',2800)}
+
+function sched(e,d){const o=S.ovr[e.id+'|'+d];if(o)return o.off?null:{st:o.st,en:o.en};const w=new Date(d+'T00:00:00').getDay();if(S.hol[d]&&e.type==='full')return null;const s=e.sch[w];return s&&s.on?{st:s.st,en:s.en}:null}
+function dayInfo(e,d){
+  const r=S.rec[e.id+'|'+d],w=new Date(d+'T00:00:00').getDay(),hol=S.hol[d],sc=sched(e,d);
+  const o={d,w,hol,r,sc,late:0,brk:0,early:0,net:0,abs:false,work:false};
+  if(r&&r.in!=null){
+    o.work=true;const l=sc?r.in-tm(sc.st):0;if(l>S.set.grace)o.late=l;
+    const hb=r.bo!=null&&r.be!=null;
+    if(hb){const b=(r.be-r.bo)-e.br;if(b>0)o.brk=b}
+    if(r.out!=null){const x=sc?tm(sc.en)-r.out:0;if(x>0)o.early=x;o.net=(r.out-r.in)-(hb?r.be-r.bo:0)}
+  }else if(sc){const n=new Date();if(d<T||(d===T&&n.getHours()*60+n.getMinutes()>tm(sc.en)))o.abs=true}
+  return o;
+}
+function range(){
+  const b=new Date(ui.date+'T00:00:00');let a,z;
+  if(ui.per==='day')a=z=b;
+  else if(ui.per==='week'){a=new Date(b);a.setDate(b.getDate()-(b.getDay()+6)%7);z=new Date(a);z.setDate(a.getDate()+6)}
+  else{a=new Date(b.getFullYear(),b.getMonth(),1);z=new Date(b.getFullYear(),b.getMonth()+1,0)}
+  const o=[];for(let x=new Date(a);x<=z;x.setDate(x.getDate()+1))o.push(dstr(x));return o;
+}
+function stats(e,ds){
+  const t={days:0,lateN:0,lateM:0,brk:0,early:0,abs:0,holD:0,min:0,nm:0,hm:0};
+  ds.forEach(d=>{const i=dayInfo(e,d);
+    if(i.work){t.days++;t.min+=i.net;if(i.late){t.lateN++;t.lateM+=i.late}t.brk+=i.brk;t.early+=i.early;
+      if(i.hol){t.holD++;t.hm+=i.net}else t.nm+=i.net}
+    if(i.abs)t.abs++});
+  t.pay=e.type==='part'?t.nm/60*e.rate+t.hm/60*e.rate*S.set.pm:e.rate/30*t.holD*S.set.fx;
+  return t;
+}
+const hrs=m=>(m/60).toFixed(1);
+const schTxt=e=>{const g={};e.sch.forEach((s,w)=>{if(s.on){const k=s.st+'–'+s.en;(g[k]=g[k]||[]).push(DAYS[w])}});const k=Object.keys(g);return k.length?k.map(t=>g[t].join(' ')+' '+t).join(' · '):'ไม่มีกะ'};
+
+function nav(){
+  const t=ui.mgr?[['sch','ตารางงาน'],['fix','แก้เวลา'],['report','รายงาน'],['emps','พนักงาน'],['cards','บัตร QR'],['lva','อนุมัติลา'],['nt','แจ้งเตือน LINE'],['set','ตั้งค่า']]:[['punch','สแกนเวลา'],['qr','QR ของฉัน'],['sch','ตารางงาน'],['leave','ขอลา']];$('#mb').textContent=ui.mgr?'ออกจาก J9MODE':'J9MODE';
+  $('#nav').innerHTML=t.map(x=>`<button class="${ui.tab===x[0]?'on':''}" onclick="go('${x[0]}')">${x[1]}</button>`).join('');
+}
+function go(t){ui.tab=t;ui.edit=null;render()}
+function render(){const MG=['fix','report','emps','set','lva','nt','cards'];if(MG.includes(ui.tab)&&!ui.mgr)ui.tab='punch';if(ui.mgr&&ui.tab==='punch')ui.tab='sch';if(ui.tab!=='punch')stopCam();nav();({punch:vPunch,sch:vSch,report:vReport,emps:vEmps,set:vSet,login:vLogin,qr:vQr,cards:vCards,leave:vLeave,fix:vFix,lva:vLva,nt:vNt})[ui.tab]()}
+
+const rtok=()=>Math.random().toString(36).slice(2,10);
+function fixTok(){let c=0;S.emps.forEach(e=>{if(!e.tok){e.tok=rtok();c=1}});if(c)save()}
+const qrText=e=>`TC:${e.id}:${e.tok}`;
+function qrSvg(t,px){if(!window.qrcode)return `<p class='note'>โหลดตัวสร้าง QR ไม่ได้</p>`;const q=qrcode(0,'M');q.addData(t);q.make();const n=q.getModuleCount();let p='';for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))p+=`M${c+4},${r+4}h1v1h-1z`;return `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${n+8} ${n+8}' width='${px}' height='${px}' style='max-width:100%;height:auto' shape-rendering='crispEdges'><rect width='100%' height='100%' fill='#fff'/><path d='${p}' fill='#000'/></svg>`}
+const cam={s:null,t:0};
+function stopCam(){clearTimeout(cam.t);if(cam.s){cam.s.getTracks().forEach(x=>x.stop());cam.s=null}}
+async function startCam(){
+  stopCam();const v=$('#cam'),x=$('#camx');if(!v)return;
+  try{
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw 0;
+    cam.s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    v.srcObject=cam.s;await v.play();x.style.display='none';
+    const c=document.createElement('canvas'),g=c.getContext('2d',{willReadFrequently:true});
+    const loop=()=>{if(!cam.s)return;if(v.videoWidth){const k=Math.min(1,640/v.videoWidth);c.width=v.videoWidth*k;c.height=v.videoHeight*k;g.drawImage(v,0,0,c.width,c.height);const im=g.getImageData(0,0,c.width,c.height),q=window.jsQR&&jsQR(im.data,im.width,im.height);if(q&&q.data)handleScan(q.data)}cam.t=setTimeout(loop,200)};
+    loop();
+  }catch(err){x.style.display='flex';x.textContent='เปิดกล้องไม่ได้ (อาจยังไม่ได้อนุญาตหรือเบราว์เซอร์บล็อก) ใช้เครื่องสแกน USB หรือพิมพ์รหัสแทน'}
+}
+function handleScan(raw){
+  raw=String(raw||'').trim();if(!raw)return;const nw=Date.now();
+  if(ui.lc&&ui.lc.c===raw&&nw-ui.lc.t<4000)return;ui.lc={c:raw,t:nw};
+  const p=raw.split(':'),e=p[0]==='TC'?S.emps.find(x=>x.id===p[1]&&x.tok===p[2]):null;
+  if(!e){ui.res={bad:1,text:'QR ไม่ถูกต้องหรือถูกยกเลิกแล้ว'};kUpd();return}
+  ui.cd=ui.cd||{};const w=30000-(nw-(ui.cd[e.id]||0));
+  if(!ui.sim&&w>0){ui.res={id:e.id,text:'เพิ่งสแกนไป รออีก '+Math.ceil(w/1000)+' วินาที',ok:false};kUpd();return}
+  ui.cd[e.id]=nw;punch(e);
+}
+function kTest(){const e=emp($('#ts').value);if(e)handleScan(qrText(e))}
+function kUpd(){
+  const n=now(),d=dstr(n),r=ui.res,kr=$('#kres'),kc=$('#krec');if(!kr)return;
+  $('#clk').textContent=hm(n.getHours()*60+n.getMinutes());$('#kd').textContent=DAYS[n.getDay()]+' '+d+(S.hol[d]?' · '+S.hol[d]:'');
+  if(!r)kr.innerHTML=`<p class='note' style='margin-top:12px'>ให้พนักงานแสดง QR ของตัวเองหน้ากล้อง หรือยิงผ่านเครื่องสแกน USB ผลลงเวลาจะขึ้นที่นี่ พร้อมรูปและชื่อ ให้ผู้ดูแลร้านตรวจว่าตรงคน</p>`;
+  else if(r.bad)kr.innerHTML=`<div style='text-align:center;margin-top:12px'><span class='chip c-bad' style='font-size:16px;padding:4px 14px'>${esc(r.text)}</span></div>`;
+  else{const e=emp(r.id),x=S.rec[e.id+'|'+d]||{};kr.innerHTML=`<div style='text-align:center'>${av(e,96)}<h2 style='margin:8px 0 6px'>${esc(e.name)}</h2><span class='chip ${r.ok?'c-ok':'c-bad'}' style='font-size:16px;padding:4px 14px'>${esc(r.text)}</span><div class='steps'>${KEYS.map((k,i)=>`<div class='step ${x[k]!=null?'done':''}'>${LAB[i]}<b>${hm(x[k])}</b></div>`).join('')}</div></div>`}
+  const rows=[];S.emps.forEach(e=>{const x=S.rec[e.id+'|'+d];if(x)KEYS.forEach((k,i)=>{if(x[k]!=null)rows.push({m:x[k],e,l:LAB[i]})})});rows.sort((a,b)=>b.m-a.m);
+  kc.innerHTML=rows.length?`<div class='wide'><table>${rows.slice(0,10).map(q=>`<tr><td>${hm(q.m)}</td><td>${dot(q.e)}${esc(q.e.name)}</td><td>${q.l}</td></tr>`).join('')}</table></div>`:`<p class='note'>ยังไม่มีการสแกนวันนี้</p>`;
+}
+function vPunch(){
+  ui.res=null;const n=now();
+  $('#view').innerHTML=`<div class='card'><div class='clock' id='clk'></div><div class='date' id='kd'></div>
+  <div class='grid' style='grid-template-columns:repeat(auto-fit,minmax(260px,1fr));align-items:start'>
+   <div><div style='background:#000;border-radius:12px;overflow:hidden;aspect-ratio:4/3;position:relative'><video id='cam' playsinline muted style='width:100%;height:100%;object-fit:cover'></video><div id='camx' style='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;text-align:center;padding:16px'>กล้องปิดอยู่</div></div><div style='margin-top:12px'><button class='btn' onclick='startCam()'>เปิดกล้องสแกน</button></div></div>
+   <div id='kres'></div></div>
+  <div style='margin-top:16px'><label for='sc'>เครื่องสแกน USB / พิมพ์รหัส (กด Enter)</label><input id='sc' autocomplete='off' placeholder='TC:…'></div></div>
+  <div class='card'><h2>สแกนล่าสุดวันนี้</h2><div id='krec'></div></div>
+  <div class='card'><label for='ts'>ทดสอบโดยไม่ใช้กล้อง: จำลองการสแกน QR ของ</label><div class='row'><div><select id='ts'>${S.emps.map(x=>`<option value='${esc(x.id)}'>${esc(x.name)}</option>`).join('')}</select></div><div style='flex:0 0 auto'><button class='btn sec' onclick='kTest()'>จำลองสแกน</button></div></div>
+  <label><input type='checkbox' style='width:auto;min-height:0' ${ui.sim?'checked':''} onchange='ui.sim=this.checked;if(ui.sim&&!ui.simv)ui.simv=dstr(new Date())+"T09:00";vPunch()'> จำลองวันและเวลา (ไว้ทดสอบสาย/วันหยุด และข้ามช่วงรอ 30 วินาที)</label>${ui.sim?`<input type='datetime-local' value='${ui.simv}' onchange='ui.simv=this.value;kUpd()'>`:''}</div>`;
+  $('#sc').addEventListener('keydown',ev=>{if(ev.key==='Enter'){handleScan(ev.target.value);ev.target.value=''}});
+  kUpd();
+}
+function vQr(){
+  if(!emp(ui.emp))ui.emp=S.emps[0]&&S.emps[0].id;const e=emp(ui.emp);
+  if(!e){$('#view').innerHTML=`<div class='card'>ยังไม่มีพนักงาน</div>`;return}
+  $('#view').innerHTML=`<div class='card' style='max-width:420px;text-align:center'><label for='who' style='text-align:left'>พนักงาน (ระบบจริงจะล็อกอิน LINE และเห็นเฉพาะของตัวเอง)</label><select id='who' onchange='ui.emp=this.value;vQr()'>${S.emps.map(x=>`<option value='${esc(x.id)}' ${x.id===e.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select>
+  <div style='margin-top:16px'>${av(e,72)}<h2 style='margin:8px 0 0'>${esc(e.name)}</h2><div class='note'>${esc(e.id)}</div></div><div style='margin:12px auto;max-width:280px'>${qrSvg(qrText(e),280)}</div><p class='note'>แสดง QR นี้ที่เครื่องสแกนของร้านเพื่อลงเวลา อย่าส่งต่อหรือแคปให้ผู้อื่น</p></div>`;
+}
+function vCards(){
+  $('#view').innerHTML=`<div class='card'><div class='row' style='margin:0'><h2 style='flex:1;margin:0'>บัตร QR พนักงาน</h2><button class='btn sec' onclick='window.print()'>พิมพ์</button></div><p class='note'>แต่ละคนมี QR เฉพาะตัว (มีรหัสลับฝัง) ถ้าบัตรหายหรือถูกแชร์ กด “สร้าง QR ใหม่” QR เดิมจะใช้ไม่ได้ทันที</p>
+  <div class='grid' style='grid-template-columns:repeat(auto-fill,minmax(210px,1fr))'>${S.emps.map(e=>`<div style='border:1px solid var(--ln);border-radius:12px;padding:12px;text-align:center'>${av(e,56)}<div><b>${esc(e.name)}</b></div><div class='note'>${esc(e.id)}</div><div style='margin:8px auto;max-width:180px'>${qrSvg(qrText(e),180)}</div><button class='btn del' onclick='regen("${esc(e.id)}")'>สร้าง QR ใหม่</button></div>`).join('')}</div></div>`;
+}
+function regen(id){const e=emp(id);if(!e||!confirm('สร้าง QR ใหม่ให้ '+e.name+'? QR เดิมจะใช้ไม่ได้ทันที'))return;e.tok=rtok();notify(id,'QR ประจำตัวของคุณถูกสร้างใหม่ กรุณาใช้ QR ใหม่ในแท็บ “QR ของฉัน”');save();vCards()}
+function vPunchOld(){
+  if(!ui.emp||!emp(ui.emp))ui.emp=S.emps[0]&&S.emps[0].id;
+  const e=emp(ui.emp);
+  if(!e){$('#view').innerHTML='<div class="card">ยังไม่มีพนักงาน เพิ่มได้ที่แท็บ “พนักงาน”</div>';return}
+  const n=now(),d=dstr(n),r=S.rec[e.id+'|'+d]||{},next=KEYS.find(k=>r[k]==null),h=S.hol[d],sc=sched(e,d);
+  $('#view').innerHTML=`<div class="card">
+   <label for="who">พนักงาน (ในระบบจริงจะล็อกอินผ่าน LINE)</label>
+   <select id="who" onchange="ui.emp=this.value;vPunch()">${S.emps.map(x=>`<option value="${esc(x.id)}" ${x.id===e.id?'selected':''}>${esc(x.name)} · ${x.type==='full'?'ประจำ':'พาร์ทไทม์'}</option>`).join('')}</select>
+   <div style="margin-top:16px;display:flex;align-items:center;gap:10px">${av(e,56)}<b>${esc(e.name)}</b></div><div style="margin-top:8px" class="clock" id="clk">${hm(n.getHours()*60+n.getMinutes())}</div>
+   <div class="date">${DAYS[n.getDay()]} ${d} · ${sc?`กะวันนี้ ${sc.st}–${sc.en}`:'วันนี้ไม่มีกะในตาราง'} พัก ${e.br} นาที ${h?`<span class="chip c-hol">${esc(h)}</span>`:''}</div>
+   <div class="steps">${KEYS.map((k,i)=>`<div class="step ${r[k]!=null?'done':k===next?'next':''}">${LAB[i]}<b>${hm(r[k])}</b></div>`).join('')}</div>
+   ${next?`<button class="btn big" onclick="punch()">ลงเวลา${LAB[KEYS.indexOf(next)]}</button>`:'<div class="chip c-ok">ลงเวลาครบ 4 ครั้งแล้ววันนี้</div>'}
+   <p class="note">ระบบจริง: สแกน QR ที่เปลี่ยนรหัสทุกวัน + เช็ก GPS + เซลฟี่ กันลงแทนกัน</p>
+  </div>
+  <div class="card"><label><input type="checkbox" style="width:auto;min-height:0" ${ui.sim?'checked':''} onchange="ui.sim=this.checked;if(ui.sim&&!ui.simv)ui.simv=dstr(new Date())+'T09:00';vPunch()"> จำลองวันและเวลา (ไว้ทดสอบสาย/วันหยุด)</label>
+   ${ui.sim?`<input type="datetime-local" value="${ui.simv}" onchange="ui.simv=this.value;vPunch()">`:''}</div>`;
+}
+function punch(e0){
+  const e=e0||emp(ui.emp),n=now(),d=dstr(n),k=e.id+'|'+d;
+  const r=S.rec[k]||{in:null,bo:null,be:null,out:null},i=KEYS.findIndex(x=>r[x]==null);
+  if(i<0){ui.res={id:e.id,text:'วันนี้ลงเวลาครบ 4 ครั้งแล้ว',ok:false};kUpd();return}
+  const m=n.getHours()*60+n.getMinutes(),prev=i?r[KEYS[i-1]]:-1;
+  if(m<prev){ui.res={id:e.id,text:'เวลาต้องไม่ย้อนหลังจากครั้งก่อน ('+hm(prev)+')',ok:false};kUpd();return}
+  r[KEYS[i]]=m;S.rec[k]=r;save();
+  let t=LAB[i]+' '+hm(m)+' แล้ว';
+  if(i===0){const sc=sched(e,d),l=sc?m-tm(sc.st):0;t+=!sc?' · วันนี้ไม่มีกะในตาราง':l>S.set.grace?` · สาย ${l} นาที`:' · ตรงเวลา'}
+  if(i===2){const b=(m-r.bo)-e.br;if(b>0)t+=` · พักเกิน ${b} นาที`}
+  if(i===3){const sc=sched(e,d),x=sc?tm(sc.en)-m:0;if(x>0)t+=` · ออกก่อน ${x} นาที`;if(S.hol[d])t+=' · นับเป็นทำงานวันหยุด'}
+  ui.res={id:e.id,text:t,ok:true};kUpd();
+}
+
+function vReport(){
+  const ds=range(),L={day:'รายวัน',week:'รายสัปดาห์',month:'รายเดือน'};
+  const rows=S.emps.map(e=>({e,t:stats(e,ds)}));
+  let det='';
+  if(ui.detail&&emp(ui.detail)){
+    const e=emp(ui.detail);
+    det=`<div class="card"><h2>รายละเอียดรายวัน: ${esc(e.name)}</h2><div class="wide"><table><tr><th>วันที่</th><th>ตารางงาน</th><th class="n">เข้า</th><th class="n">ออกพัก</th><th class="n">กลับ</th><th class="n">เลิก</th><th class="n">ชม.</th><th>สถานะ</th></tr>
+    ${ds.filter(d=>d<=T).reverse().map(d=>{const i=dayInfo(e,d),r=i.r||{};
+      const ov=S.ovr[e.id+'|'+d],c=[ov&&ov.leave?'<span class="chip c-hol">ลาอนุมัติ</span>':'',i.hol?`<span class="chip c-hol">${i.work?'ทำงานวันหยุด':'หยุด'}: ${esc(i.hol)}</span>`:'',i.late?`<span class="chip c-late">สาย ${i.late} น.</span>`:'',i.brk?`<span class="chip c-late">พักเกิน ${i.brk} น.</span>`:'',i.early?`<span class="chip c-late">ออกก่อน ${i.early} น.</span>`:'',i.abs?'<span class="chip c-bad">ขาด</span>':'',i.work&&i.sc&&!i.late&&!i.early&&!i.brk?'<span class="chip c-ok">ปกติ</span>':'',i.work&&!i.sc?'<span class="chip c-off">นอกตารางงาน</span>':'',!i.work&&!i.abs&&!i.hol?'<span class="chip c-off">ไม่ได้ทำงาน</span>':''].join('');
+      return `<tr><td>${DAYS[i.w]} ${d.slice(5)}</td><td>${i.sc?i.sc.st+'–'+i.sc.en:'หยุด'}</td><td class="n">${hm(r.in)}</td><td class="n">${hm(r.bo)}</td><td class="n">${hm(r.be)}</td><td class="n">${hm(r.out)}</td><td class="n">${i.net?hrs(i.net):'–'}</td><td>${c}</td></tr>`}).join('')}
+    </table></div></div>`;
+  }
+  $('#view').innerHTML=`<div class="card"><div class="row"><div><label>ช่วงเวลา</label><div class="seg">${Object.keys(L).map(k=>`<button class="${ui.per===k?'on':''}" onclick="ui.per='${k}';vReport()">${L[k]}</button>`).join('')}</div></div>
+   <div><label for="rd">วันที่อ้างอิง</label><input id="rd" type="date" value="${ui.date}" onchange="ui.date=this.value||T;vReport()"></div></div>
+   <p class="note">${ds[0]} ถึง ${ds[ds.length-1]} · กดที่แถวเพื่อดูรายวัน</p>
+   <div class="wide"><table><tr><th>พนักงาน</th><th>ประเภท</th><th class="n">วันทำงาน</th><th class="n">ชม.</th><th class="n">สาย (ครั้ง/นาที)</th><th class="n">พักเกิน</th><th class="n">ออกก่อน</th><th class="n">ขาด</th><th class="n">วันหยุดที่มา</th><th class="n">ค่าแรง/ส่วนเพิ่ม (ประมาณ)</th></tr>
+   ${rows.map(({e,t})=>`<tr class="pick" onclick="ui.detail='${esc(e.id)}';vReport()"><td>${dot(e)}${esc(e.name)}</td><td>${e.type==='full'?'ประจำ':'พาร์ทไทม์'}</td><td class="n">${t.days}</td><td class="n">${hrs(t.min)}</td><td class="n">${t.lateN?`<span class="chip c-late">${t.lateN} / ${t.lateM}</span>`:'0'}</td><td class="n">${t.brk}</td><td class="n">${t.early}</td><td class="n">${t.abs?`<span class="chip c-bad">${t.abs}</span>`:'0'}</td><td class="n">${t.holD?`<span class="chip c-hol">${t.holD}</span>`:'0'}</td><td class="n">${e.type==='part'?baht(t.pay):'เงินเดือน +'+baht(t.pay)}</td></tr>`).join('')}
+   </table></div>
+   <p class="note">สาย/ขาด/ออกก่อน คิดจากตารางงานของแต่ละวัน · พาร์ทไทม์: ค่าแรง = ชั่วโมงสุทธิ × เรต (วันหยุด × ตัวคูณในตั้งค่า) · ประมาณการ ใช้ตรวจกับฝ่ายบัญชีก่อนจ่ายจริง</p></div>${det}`;
+}
+
+function wkDates(s){const b=new Date(s+'T00:00:00'),a=new Date(b);a.setDate(b.getDate()-(b.getDay()+6)%7);const o=[];for(let i=0;i<7;i++){o.push(dstr(a));a.setDate(a.getDate()+1)}return o}
+function shiftWk(n){const b=new Date((ui.sd||T)+'T00:00:00');b.setDate(b.getDate()+n*7);ui.sd=dstr(b);vSch()}
+function vSch(){
+  ui.sd=ui.sd||T;const ds=wkDates(ui.sd),ov=Object.keys(S.ovr).sort();
+  $('#view').innerHTML=`<div class="card"><div class="row" style="margin:0 0 12px"><h2 style="flex:1;margin:0">ตารางงาน ${ds[0]} ถึง ${ds[6]}</h2><button class="btn sec" onclick="shiftWk(-1)">สัปดาห์ก่อน</button><button class="btn sec" onclick="ui.sd=T;vSch()">สัปดาห์นี้</button><button class="btn sec" onclick="shiftWk(1)">สัปดาห์หน้า</button></div>
+  <div class="wide"><table><tr><th>พนักงาน</th>${ds.map(d=>`<th>${DAYS[new Date(d+'T00:00:00').getDay()]} ${d.slice(8)}${S.hol[d]?' <span class="chip c-hol">นักขัตฤกษ์</span>':''}</th>`).join('')}</tr>
+  ${S.emps.map(e=>`<tr><td>${dot(e)}${esc(e.name)}</td>${ds.map(d=>{const s=sched(e,d),o=S.ovr[e.id+'|'+d];return `<td style='${s?'box-shadow:inset 3px 0 0 '+col(e):''}'>${s?s.st+'–'+s.en:'<span class="note">หยุด</span>'}${o?` <span class='chip ${o.leave?'c-hol':'c-late'}'>${o.leave?'ลา':'เฉพาะวัน'}</span>`:''}</td>`}).join('')}</tr>`).join('')}</table></div>
+  <p class="note">ตารางประจำสัปดาห์แก้ได้ที่แท็บ “พนักงาน” · เข้างานหลังเวลาในตารางเกิน ${S.set.grace} นาที นับว่าสาย · พนักงานประจำหยุดอัตโนมัติวันนักขัตฤกษ์</p></div>
+  ${ui.mgr?`<div class="card"><h2>เพิ่ม/เปลี่ยนกะเฉพาะวัน</h2><div class="row"><div><label>พนักงาน</label><select id="o_e">${S.emps.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('')}</select></div><div><label>วันที่</label><input id="o_d" type="date" value="${ui.sd}"></div><div><label>รูปแบบ</label><select id="o_t"><option value="on">ทำงาน</option><option value="off">หยุด</option></select></div><div><label>เข้า</label><input id="o_s" type="time" value="09:00"></div><div><label>เลิก</label><input id="o_n" type="time" value="18:00"></div></div><button class="btn" onclick="addOvr()">บันทึก</button>
+  ${ov.length?`<div class="wide" style="margin-top:12px"><table>${ov.map(k=>{const p=k.split('|'),e=emp(p[0]),o=S.ovr[k];return `<tr><td>${e?esc(e.name):esc(p[0])}</td><td>${p[1]}</td><td>${o.off?'หยุด':o.st+'–'+o.en}</td><td><button class="btn del" onclick="delete S.ovr['${esc(k)}'];save();vSch()">ลบ</button></td></tr>`}).join('')}</table></div>`:''}</div>`:''}`;
+}
+function addOvr(){const id=$('#o_e').value,d=$('#o_d').value;if(!id||!d){toast('เลือกพนักงานและวันที่');return}S.ovr[id+'|'+d]=$('#o_t').value==='off'?{off:true}:{st:$('#o_s').value||'09:00',en:$('#o_n').value||'18:00'};{const o=S.ovr[id+'|'+d];notify(id,`ตารางงานวันที่ ${d} ถูกเปลี่ยนเป็น ${o.off?'หยุด':o.st+'–'+o.en}`)}save();vSch();toast('บันทึกแล้ว และสร้างแจ้งเตือนถึงพนักงาน')}
+const ts=()=>{const n=new Date();return dstr(n)+' '+hm(n.getHours()*60+n.getMinutes())};
+const nm=id=>emp(id)?esc(emp(id).name):esc(id);
+const addD=(d,n)=>{const b=new Date(d+'T00:00:00');b.setDate(b.getDate()+n);return dstr(b)};
+const LS={pending:['รออนุมัติ','c-late'],approved:['อนุมัติแล้ว','c-ok'],rejected:['ไม่อนุมัติ','c-bad']};
+const av=(e,s)=>e.ph?`<img src='${e.ph}' alt='' style='width:${s}px;height:${s}px;border-radius:50%;object-fit:cover;vertical-align:middle;border:3px solid ${col(e)}'>`:`<span style='display:inline-flex;width:${s}px;height:${s}px;border-radius:50%;background:var(--sf);color:var(--ink);border:3px solid ${col(e)};align-items:center;justify-content:center;font-weight:700;vertical-align:middle'>${esc((e.name||'?').slice(0,1))}</span>`;
+const col=e=>e.color||`hsl(${[...String(e.id||e.name||'?')].reduce((a,c)=>a+c.charCodeAt(0)*37,0)%360} 55% 45%)`;
+const dot=e=>`<span style='display:inline-block;width:10px;height:10px;border-radius:50%;background:${col(e)};margin-right:6px'></span>`;
+function notify(id,t){S.notif.unshift({t:ts(),emp:id,text:t});S.notif=S.notif.slice(0,100)}
+function pickPhoto(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas'),s=Math.min(im.width,im.height);c.width=c.height=160;c.getContext('2d').drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,160,160);ui.ph=c.toDataURL('image/jpeg',.8);$('#ph_pv').innerHTML=av({name:'?',color:$('#f_color').value,ph:ui.ph},44)};im.onerror=()=>toast('เปิดรูปนี้ไม่ได้');im.src=r.result};r.readAsDataURL(f)}
+function savePin(){const p=$('#np').value.trim();if(p.length<4){toast('PIN อย่างน้อย 4 ตัว');return}S.pin=p;save();$('#np').value='';toast('เปลี่ยน PIN แล้ว')}
+function mgrBtn(){if(ui.mgr){ui.mgr=false;ui.tab='punch'}else ui.tab='login';render()}
+function vLogin(){$('#view').innerHTML=`<div class='card' style='max-width:380px'><h2>J9MODE</h2><label for='pin'>PIN</label><input id='pin' type='password' inputmode='numeric' onkeydown="if(event.key==='Enter')doLogin()"><div style='margin-top:12px'><button class='btn' onclick='doLogin()'>เข้าสู่ระบบ</button></div><p class='note'>PIN เริ่มต้นของต้นแบบคือ 1234 (เปลี่ยนได้ในตั้งค่า)</p></div>`}
+function doLogin(){if($('#pin').value===S.pin){ui.mgr=true;ui.tab='sch';render()}else toast('PIN ไม่ถูกต้อง')}
+function vFix(){
+  if(!emp(ui.fe))ui.fe=S.emps[0]&&S.emps[0].id;ui.fd=ui.fd||T;const e=emp(ui.fe);
+  if(!e){$('#view').innerHTML=`<div class='card'>ยังไม่มีพนักงาน</div>`;return}
+  const r=S.rec[e.id+'|'+ui.fd]||{},sc=sched(e,ui.fd),tv=m=>m==null?'':hm(m);
+  $('#view').innerHTML=`<div class='card'><h2>แก้ไข/เพิ่มเวลาลงเวลา (ย้อนหลังได้)</h2><div class='row'><div><label>พนักงาน</label><select onchange='ui.fe=this.value;vFix()'>${S.emps.map(x=>`<option value='${esc(x.id)}' ${x.id===e.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div><div><label>วันที่</label><input type='date' max='${T}' value='${ui.fd}' onchange='ui.fd=this.value||T;vFix()'></div></div>
+  <p class='note'>ตารางงานวันนั้น: ${sc?sc.st+'–'+sc.en:'ไม่มีกะ'}${S.hol[ui.fd]?' · '+esc(S.hol[ui.fd]):''} · เว้นช่องว่างเพื่อลบเวลานั้น (ลืมสแกนให้กรอกเวลาเอง)</p>
+  <div class='grid'>${KEYS.map((k,i)=>`<div><label>${LAB[i]}</label><input type='time' id='fx${i}' value='${tv(r[k])}'></div>`).join('')}</div>
+  <div style='margin-top:12px'><label>เหตุผลการแก้ไข (จำเป็น)</label><input id='fr' placeholder='เช่น ลืมสแกน / ระบบขัดข้อง'></div>
+  <div style='margin-top:12px'><button class='btn' onclick='saveFix()'>บันทึก</button></div></div>
+  <div class='card'><h2>ประวัติการแก้ไข</h2>${S.audit.length?`<div class='wide'><table><tr><th>เมื่อ</th><th>พนักงาน</th><th>วันที่</th><th>ก่อน</th><th>หลัง</th><th>เหตุผล</th></tr>${S.audit.slice(0,30).map(a=>`<tr><td>${a.t}</td><td>${nm(a.emp)}</td><td>${a.d}</td><td>${a.old.map(m=>hm(m)).join(' / ')}</td><td>${a.nw.map(m=>hm(m)).join(' / ')}</td><td>${esc(a.why)}</td></tr>`).join('')}</table></div>`:`<p class='note'>ยังไม่มีการแก้ไข</p>`}</div>`;
+}
+function saveFix(){
+  const e=emp(ui.fe),d=ui.fd,why=$('#fr').value.trim(),v=KEYS.map((k,i)=>{const s=$('#fx'+i).value;return s?tm(s):null});
+  const f=v.filter(x=>x!=null);for(let i=1;i<f.length;i++)if(f[i]<f[i-1]){toast('เวลาต้องเรียงตามลำดับ เข้า → ออกพัก → กลับ → เลิก');return}
+  if(!why){toast('ต้องใส่เหตุผลการแก้ไข');return}
+  const k=e.id+'|'+d,old=S.rec[k]||{};
+  S.audit.unshift({t:ts(),emp:e.id,d,old:KEYS.map(x=>old[x]==null?null:old[x]),nw:v,why});
+  if(v.every(x=>x==null))delete S.rec[k];else{const r={};KEYS.forEach((x,i)=>r[x]=v[i]);S.rec[k]=r}
+  notify(e.id,`HR แก้ไขเวลาลงเวลาวันที่ ${d} เป็น ${v.map(m=>hm(m)).join(' / ')} (${why})`);save();vFix();toast('บันทึกและเก็บประวัติการแก้ไขแล้ว');
+}
+function vLeave(){
+  if(!emp(ui.emp))ui.emp=S.emps[0]&&S.emps[0].id;const e=emp(ui.emp);
+  if(!e){$('#view').innerHTML=`<div class='card'>ยังไม่มีพนักงาน</div>`;return}
+  const min=addD(T,7),mine=S.leave.filter(l=>l.emp===e.id).slice().reverse(),mn=S.notif.filter(n=>n.emp===e.id).slice(0,8);
+  $('#view').innerHTML=`<div class='card'><h2>ขอลา / ขอหยุด</h2><label for='who'>พนักงาน</label><select id='who' onchange='ui.emp=this.value;vLeave()'>${S.emps.map(x=>`<option value='${esc(x.id)}' ${x.id===e.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select>
+  <div class='row' style='margin-top:12px'><div><label>วันที่ต้องการหยุด (ขอล่วงหน้าอย่างน้อย 7 วัน)</label><input id='ld' type='date' min='${min}' value='${min}'></div><div><label>เหตุผล</label><input id='lr'></div></div>
+  <button class='btn' onclick='sendLeave()'>ส่งคำขอ</button><p class='note'>เร็วที่สุดที่ขอได้: ${min} · กรณีด่วนกว่านี้ให้แจ้ง HR/ผู้จัดการโดยตรง</p></div>
+  <div class='card'><h2>คำขอของฉัน</h2>${mine.length?`<div class='wide'><table><tr><th>วันที่ลา</th><th>เหตุผล</th><th>ขอเมื่อ</th><th>สถานะ</th></tr>${mine.map(l=>`<tr><td>${l.d}</td><td>${esc(l.why)}</td><td>${l.req}</td><td><span class='chip ${LS[l.s][1]}'>${LS[l.s][0]}</span></td></tr>`).join('')}</table></div>`:`<p class='note'>ยังไม่มีคำขอ</p>`}</div>
+  <div class='card'><h2>แจ้งเตือนถึงฉัน</h2>${mn.length?mn.map(n=>`<p style='margin:0 0 8px'><span class='note'>${n.t}</span><br>${esc(n.text)}</p>`).join(''):`<p class='note'>ยังไม่มีแจ้งเตือน</p>`}</div>`;
+}
+function sendLeave(){
+  const e=emp(ui.emp),d=$('#ld').value,why=$('#lr').value.trim(),min=addD(T,7);
+  if(!d||!why){toast('เลือกวันที่และใส่เหตุผล');return}
+  if(d<min){toast('ต้องขอล่วงหน้าอย่างน้อย 7 วัน (เร็วสุด '+min+')');return}
+  if(S.leave.some(l=>l.emp===e.id&&l.d===d&&l.s!=='rejected')){toast('มีคำขอวันนี้อยู่แล้ว');return}
+  S.leave.push({id:Date.now(),emp:e.id,d,why,s:'pending',req:T});save();vLeave();toast('ส่งคำขอแล้ว รอ HR/ผู้จัดการอนุมัติ');
+}
+function vLva(){
+  const P=S.leave.filter(l=>l.s==='pending').sort((a,b)=>a.d<b.d?-1:1),H=S.leave.filter(l=>l.s!=='pending').slice().reverse().slice(0,30);
+  $('#view').innerHTML=`<div class='card'><h2>คำขอลารออนุมัติ (${P.length})</h2>${P.length?`<div class='wide'><table><tr><th>พนักงาน</th><th>วันที่ลา</th><th>เหตุผล</th><th>ขอเมื่อ</th><th></th></tr>${P.map(l=>`<tr><td>${nm(l.emp)}</td><td>${l.d}</td><td>${esc(l.why)}</td><td>${l.req}</td><td><button class='btn' onclick='decide(${l.id},true)'>อนุมัติ</button> <button class='btn del' onclick='decide(${l.id},false)'>ไม่อนุมัติ</button></td></tr>`).join('')}</table></div>`:`<p class='note'>ไม่มีคำขอค้างอยู่ (ลองสลับไปโหมดพนักงาน แล้วขอลาที่แท็บ “ขอลา”)</p>`}<p class='note'>เมื่ออนุมัติ ระบบจะตั้งวันนั้นเป็น “ลา” ในตารางงานและไม่นับขาด</p></div>
+  <div class='card'><h2>ประวัติ</h2>${H.length?`<div class='wide'><table>${H.map(l=>`<tr><td>${nm(l.emp)}</td><td>${l.d}</td><td>${esc(l.why)}</td><td><span class='chip ${LS[l.s][1]}'>${LS[l.s][0]}</span></td></tr>`).join('')}</table></div>`:`<p class='note'>ยังไม่มี</p>`}</div>`;
+}
+function decide(id,ok){const l=S.leave.find(x=>x.id===id);if(!l)return;l.s=ok?'approved':'rejected';if(ok)S.ovr[l.emp+'|'+l.d]={off:true,leave:true};notify(l.emp,`คำขอลาวันที่ ${l.d} ${ok?'ได้รับอนุมัติแล้ว':'ไม่ได้รับอนุมัติ'}`);save();vLva()}
+function vNt(){
+  $('#view').innerHTML=`<div class='card'><h2>แจ้งเตือนผ่าน LINE</h2><p>ต้นแบบนี้ยังส่งเข้า LINE จริงไม่ได้ (เป็นหน้าเว็บล้วน ไม่มีเซิร์ฟเวอร์) ตารางด้านล่างคือข้อความที่ระบบจะส่งเมื่อมีการเปลี่ยนตาราง แก้เวลา หรืออนุมัติ/ไม่อนุมัติลา ส่วนพนักงานจะเห็นข้อความเดียวกันที่แท็บ “ขอลา”</p><p class='note'>ระบบจริงต้องมี LINE Official Account (Messaging API) และให้พนักงานล็อกอินผ่าน LINE (LIFF) ครั้งแรกเพื่อผูก LINE User ID กับรหัสพนักงาน หรือกรอก ID ที่แท็บ “พนักงาน”</p></div>
+  <div class='card'><h2>กล่องข้อความที่จะส่ง</h2>${S.notif.length?`<div class='wide'><table><tr><th>เวลา</th><th>ถึง</th><th>LINE</th><th>ข้อความ</th></tr>${S.notif.slice(0,50).map(n=>`<tr><td>${n.t}</td><td>${nm(n.emp)}</td><td>${emp(n.emp)&&emp(n.emp).line?`<span class='chip c-ok'>ผูกแล้ว</span>`:`<span class='chip c-off'>ยังไม่ผูก</span>`}</td><td style='white-space:normal'>${esc(n.text)}</td></tr>`).join('')}</table></div>`:`<p class='note'>ยังไม่มีข้อความ ลองแก้ตาราง/เวลา หรืออนุมัติลา แล้วกลับมาดู</p>`}</div>`;
+}
+function vEmps(){if(!ui.edit)ui.ph=undefined;
+  const x=ui.edit,f=x?`<div class="card"><h2>${x.id?'แก้ไขพนักงาน':'เพิ่มพนักงาน'}</h2><div class="grid">
+   <div><label>ชื่อ</label><input id="f_name" value="${esc(x.name||'')}"></div>
+   <div><label>รหัสพนักงาน</label><input id="f_id" value="${esc(x.id||'')}" ${x.id?'readonly':''}></div>
+   <div><label>เบอร์โทร</label><input id="f_phone" value="${esc(x.phone||'')}"></div><div><label>สีประจำตัว</label><input id="f_color" type="color" value="${x.color||'#0e7467'}" style="padding:2px"></div><div><label>LINE User ID (ไว้ผูกแจ้งเตือน)</label><input id="f_line" value="${esc(x.line||'')}" placeholder="U1234…"></div><div><label>รูปพนักงาน</label><div style="display:flex;gap:10px;align-items:center"><span id="ph_pv">${av({name:x.name||'?',color:x.color,ph:ui.ph!==undefined?ui.ph:x.ph},44)}</span><input type="file" accept="image/*" onchange="pickPhoto(this)"></div></div>
+   <div><label>ประเภท</label><select id="f_type"><option value="full" ${x.type!=='part'?'selected':''}>ประจำ (รายเดือน)</option><option value="part" ${x.type==='part'?'selected':''}>พาร์ทไทม์ (รายชั่วโมง)</option></select></div>
+   <div><label>เงินเดือน / ค่าแรงต่อชั่วโมง (บาท)</label><input id="f_rate" type="number" min="0" value="${x.rate||''}"></div>
+   
+   
+   <div><label>เวลาพัก (นาที)</label><input id="f_br" type="number" min="0" value="${x.br==null?60:x.br}"></div></div>
+   <h2 style="margin:20px 0 8px">ตารางงานประจำสัปดาห์ (เวลาเข้างานคือเกณฑ์ตัดสินว่าสาย)</h2>${(x.sch||WK([1,2,3,4,5],'09:00','18:00')).map((s,w)=>`<div class="row" style="margin-bottom:6px"><div style="flex:0 0 70px"><label style="display:flex;gap:6px;align-items:center;color:var(--ink)"><input type="checkbox" style="width:auto;min-height:0" id="s_on${w}" ${s.on?'checked':''}>${DAYS[w]}</label></div><div><input type="time" id="s_st${w}" value="${s.st}"></div><div><input type="time" id="s_en${w}" value="${s.en}"></div></div>`).join('')}
+   <div class="row" style="margin:16px 0 0"><button class="btn" onclick="saveEmp()">บันทึก</button><button class="btn sec" onclick="ui.edit=null;vEmps()">ยกเลิก</button></div></div>`:'';
+  $('#view').innerHTML=`<div class="card"><div class="row" style="margin:0"><h2 style="flex:1;margin:0">พนักงาน ${S.emps.length} คน</h2><button class="btn" onclick="ui.edit={};vEmps()">เพิ่มพนักงาน</button></div>
+   <div class="wide"><table><tr><th>รหัส</th><th>ชื่อ</th><th>ประเภท</th><th>เบอร์โทร</th><th>กะ</th><th class="n">ค่าจ้าง</th><th></th></tr>
+   ${S.emps.map(e=>`<tr><td>${esc(e.id)}</td><td>${av(e,32)} ${esc(e.name)}</td><td>${e.type==='full'?'ประจำ':'พาร์ทไทม์'}</td><td>${esc(e.phone)}</td><td>${schTxt(e)} (พัก ${e.br})</td><td class="n">${baht(e.rate)}${e.type==='full'?'/เดือน':'/ชม.'}</td><td><button class="btn sec" onclick="ui.edit=emp('${esc(e.id)}');vEmps()">แก้ไข</button> <button class="btn del" onclick="delEmp('${esc(e.id)}')">ลบ</button></td></tr>`).join('')}
+   </table></div><p class="note">ระบบจริง: พนักงานเห็นเฉพาะข้อมูลตัวเอง หัวหน้า/HR เห็นทุกคน และต้องขอความยินยอมตาม PDPA</p></div>${f}`;
+}
+function saveEmp(){
+  const v=k=>$('#f_'+k).value.trim(),id=v('id'),name=v('name');
+  if(!id||!name||!v('rate')){toast('กรอกชื่อ รหัส และค่าจ้างให้ครบ');return}
+  const sch=[0,1,2,3,4,5,6].map(w=>({on:$('#s_on'+w).checked,st:$('#s_st'+w).value||'09:00',en:$('#s_en'+w).value||'18:00'})),o={id,name,phone:v('phone'),line:v('line'),color:v('color'),ph:ui.ph!==undefined?ui.ph:(ui.edit.ph||''),type:v('type'),rate:+v('rate'),sch,br:+v('br')||0,tok:ui.edit.tok||rtok()},i=S.emps.findIndex(e=>e.id===id);
+  if(ui.edit.id){if(JSON.stringify(ui.edit.sch)!==JSON.stringify(sch)||ui.edit.br!==o.br)notify(id,'ตารางงานประจำสัปดาห์ของคุณมีการเปลี่ยนแปลง กรุณาตรวจสอบในแอป');S.emps[i]=o}else if(i>=0){toast('รหัสนี้มีอยู่แล้ว');return}else S.emps.push(o);
+  save();ui.edit=null;vEmps();toast('บันทึกแล้ว');
+}
+function delEmp(id){if(!confirm('ลบพนักงานคนนี้? ประวัติลงเวลาจะไม่แสดงในรายงาน'))return;S.emps=S.emps.filter(e=>e.id!==id);save();vEmps()}
+
+function vSet(){
+  const hs=Object.keys(S.hol).sort();
+  $('#view').innerHTML=`<div class="card"><h2>เกณฑ์การคำนวณ</h2><div class="grid">
+   <div><label>ผ่อนผันมาสาย (นาที)</label><input type="number" min="0" value="${S.set.grace}" onchange="S.set.grace=+this.value||0;save()"></div>
+   <div><label>ตัวคูณค่าแรงพาร์ทไทม์วันหยุด</label><input type="number" step="0.5" min="1" value="${S.set.pm}" onchange="S.set.pm=+this.value||1;save()"></div>
+   <div><label>ส่วนเพิ่มพนักงานประจำวันหยุด (เท่าของค่าแรงรายวัน)</label><input type="number" step="0.5" min="0" value="${S.set.fx}" onchange="S.set.fx=+this.value||0;save()"></div></div>
+   <p class="note">เรตตามกฎหมายแรงงานต่างกันระหว่างรายเดือนกับรายวัน/รายชั่วโมง ค่าเริ่มต้นเป็นเพียงตัวอย่าง ตรวจกับฝ่ายบัญชีก่อนใช้จริง</p></div>
+  <div class="card"><h2>วันนักขัตฤกษ์ / วันหยุดบริษัท</h2>
+   <div class="row"><div><label>วันที่</label><input id="h_d" type="date"></div><div><label>ชื่อวันหยุด</label><input id="h_n"></div><div style="flex:0 0 auto"><button class="btn" onclick="addHol()">เพิ่ม</button></div></div>
+   <div class="wide"><table>${hs.map(d=>`<tr><td>${d}</td><td>${esc(S.hol[d])}</td><td><button class="btn del" onclick="delete S.hol['${d}'];save();vSet()">ลบ</button></td></tr>`).join('')}</table></div>
+   <p class="note">รายการตัวอย่าง ตรวจกับปฏิทินวันหยุดที่ประกาศจริงก่อนใช้งาน</p></div>
+  <div class="card"><h2>PIN สำหรับ HR/ผู้จัดการ</h2><div class="row"><div><label>PIN ใหม่ (อย่างน้อย 4 ตัว)</label><input id="np" type="password" inputmode="numeric"></div><div style="flex:0 0 auto"><button class="btn" onclick="savePin()">บันทึก</button></div></div><p class="note">PIN เก็บในเบราว์เซอร์ ใช้กันคนทั่วไปเข้าผิดหน้าในต้นแบบเท่านั้น ระบบจริงต้องล็อกอินและตรวจสิทธิ์ที่เซิร์ฟเวอร์</p></div>
+  <div class="card"><button class="btn sec" onclick="if(confirm('ล้างข้อมูลทั้งหมดและกลับไปใช้ข้อมูลตัวอย่าง?')){S=seed();save();go('punch')}">รีเซ็ตเป็นข้อมูลตัวอย่าง</button></div>`;
+}
+function addHol(){const d=$('#h_d').value,n=$('#h_n').value.trim();if(!d||!n){toast('ใส่วันที่และชื่อวันหยุด');return}S.hol[d]=n;save();vSet()}
+
+load();render();
+setInterval(()=>{const c=$('#clk');if(c&&!ui.sim){const n=new Date();c.textContent=hm(n.getHours()*60+n.getMinutes())}},5000);
+</script>
+</body>
+</html>
